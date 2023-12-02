@@ -1,7 +1,11 @@
 from ai import AI
 from agent import Agent
 import selfcord
+import pytz
+from datetime import datetime
 import os
+
+# FIXME: group dms can have names
 
 class Client(selfcord.Client):
     async def on_ready(self):
@@ -9,7 +13,7 @@ class Client(selfcord.Client):
         self.messages = {}
         #ai = AI("cock-q6_k.gguf", "6969")
         await ai.init()
-        self.agent = Agent(ai, self.user.name, self.typing, self.send)
+        self.agent = Agent(ai, self.user.name, self)
         await self.agent.start()
         print("Logged in as", self.user)
 
@@ -18,6 +22,36 @@ class Client(selfcord.Client):
             return self.channel_from(guild, channel).typing()
         except Exception as e:
             return str(e)
+
+    async def channel_history(self, guild, channel):
+        try:
+            channel = self.channel_from(guild, channel)
+            r = []
+            async for x in channel.history(limit=20, oldest_first=True):
+                r.append({"author": x.author, "time": x.created_at, "content": x.content, "guild": guild, "channel": channel, "id": x.id, "reference": x.reference.message_id if x.reference else None, "attachments": [x.filename for x in x.attachments]})
+            return r
+        except Exception as e:
+            return [{"author": "Discord", "time": datetime.now(pytz.utc), "content": str(e)}]
+
+    def get_guilds(self):
+        # TODO: add unreads, also do mentions even work like this in a selfbot?
+        mentions = lambda x: sum([x.mention_count for x in x.channels if isinstance(x, selfcord.TextChannel)])
+        return [{"name": x.name, "mentions": mentions(x), "unread": mentions(x)} for x in self.guilds]
+
+    def get_channels(self, guild_name):
+        guild = [x for x in self.guilds if x.name == guild_name]
+        if guild: guild = guild[0]
+        else: raise Exception(f"Guild {guild_name or 'None'} does not exist. use /list-guilds to see what guilds you are in.")
+        return [{"name": x.name, "mentions": x.mention_count, "unread": x.mention_count} for x in guild.channels if isinstance(x, selfcord.TextChannel)]
+
+    def get_dms(self):
+        return [{"name": x.recipient.name, "mentions": x.mention_count, "unread": x.mention_count} for x in self.private_channels if isinstance(x, selfcord.DMChannel)]
+
+    def get_groups(self):
+        return [{"name": ", ".join([x.name for x in x.recipients]), "mentions": x.mention_count, "unread": x.mention_count} for x in self.private_channels if isinstance(x, selfcord.GroupChannel)]
+
+    def get_friends(self):
+        return [{"name": x.user.name, "status": x.raw_status} for x in self.friends]
 
     def send(self, guild, channel, reference, content):
         try:
@@ -41,12 +75,34 @@ class Client(selfcord.Client):
         if channel: return channel[0]
         else: raise Exception(f"Channel {channel_name or 'None'} does not exist in current guild {guild_name or 'None'}. use /list-channels to see what channels are in the current guild.")
 
+    def guild_exists(self, guild_name):
+        try:
+            self.channel_from(guild_name, None)
+        except Exception as e:
+            return str(e).startswith("Channel")
+
+    def w(self, g, c):
+        try:
+            self.channel_from(g, c)
+            return True
+        except:
+            return False
+
+    def channel_exists(self, guild_name, channel_name):
+        return self.w(guild_name, channel_name)
+
+    def dm_exists(self, dm_name):
+        return self.w("Direct messages", dm_name)
+
+    def group_exists(self, group_name):
+        return self.w("Group Messages", group_name)
+
     async def on_message(self, message: selfcord.Message):
         #if message.author == self.user: return
 
         if message.guild and not message.channel.permissions_for(message.guild.get_member(self.user.id)).send_messages: return
 
-        if self.user in message.mentions or isinstance(message.channel, selfcord.DMChannel):
+        if self.user in message.mentions or isinstance(message.channel, selfcord.DMChannel) or self.user == message.author:
             if message.guild: guild = message.guild.name
             elif isinstance(message.channel, selfcord.GroupChannel): guild = "Group messages"
             else: guild = "Direct messages"

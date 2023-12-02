@@ -2,6 +2,10 @@ import sys
 import json
 import sentencepiece as spm
 from datetime import datetime
+import random
+from wonderwords import RandomWord
+
+rw = RandomWord()
 
 MAX_TOKENS = 4096
 
@@ -19,6 +23,7 @@ login_time = 0
 last_time = 0
 first_time = 0
 user = ""
+reauser = ""
 cur_guild = ""
 cur_channel = ""
 new_guild = ""
@@ -27,6 +32,10 @@ new_guild_d = {}
 new_channel_d = {}
 id_count = 0
 ids = {}
+
+def rand_user():
+    x = rw.random_words(random.randrange(1, 5), include_parts_of_speech=["verbs", "adjectives", "nouns"], word_max_length=12)
+    return ("." if random.random() <= 0.5 else "_").join(x)
 
 def id_convert(id):
     global id_count
@@ -68,9 +77,11 @@ def escape(s):
 def user_msg(usr, time, msg, guild=None, channel=None, id=None, reference=None, attachments=None):
     diffg = '!' if guild != cur_guild else ''
     diffc = '!' if channel != cur_channel else ''
-    if user == usr:
+    if user == usr or reauser == usr:
         diffg = ""
         diffc = ""
+    if usr == reauser:
+        usr = user
     g = " (" + diffg + guild + ")" if guild else ""
     c = " [" + diffc + channel + "]" if channel else ""
     i = " " + id_convert(id) if id else ""
@@ -93,7 +104,9 @@ for o in obj:
         cur_channel = ""
         flush_buf(len(buf))
         login_time = o["timestamp"]
-        user = d["user"]
+        #user = d["user"]
+        user = rand_user()
+        reauser = d["user"]
         user_msg(user, login_time, "/login " + user)
         system_msg(login_time, "Successfully logged you in to Discord as User " + user)
 
@@ -123,6 +136,8 @@ for o in obj:
             cur_channel = ""
 
         if new_channel and new_channel != cur_channel:
+            # REaD READ RAD, maybe also list channels/dms/guilds if they have UNREADS but no MENTIONS
+            # also get rid of all  cockmongler edits holy fuc
             if cur_guild == "Direct messages":
                 if new_channel not in "\n".join(["".join(x) for x in buf]):
                     dms = [x for x in new_channel_d["data"]["dms"] if x["type"] == "dm"]

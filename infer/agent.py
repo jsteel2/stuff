@@ -1,14 +1,14 @@
 from datetime import datetime
+import pytz
 import asyncio
 import random
 import re
 
 class Agent():
-    def __init__(self, ai, name, typing, send):
+    def __init__(self, ai, name, wrap):
         self.ai = ai
         self.name = name
-        self.typing = typing
-        self.send = send
+        self.discord = wrap
         self.log = []
         self.cur_guild = ""
         self.cur_channel = ""
@@ -32,7 +32,7 @@ class Agent():
                 elif i == 2: return " @" + self.ids[x]
                 else: return x
             except KeyError: return ""
-        return "\n".join([self.sys_prompt.format(time=self.fmt_time(datetime.now())), *["".join([fmt(x, i) for i, x in enumerate(c)]) for c in self.log]])
+        return "\n".join([self.sys_prompt.format(time=self.fmt_time(datetime.now(pytz.utc))), *["".join([fmt(x, i) for i, x in enumerate(c)]) for c in self.log]])
 
     async def trim_log(self):
         while len(await self.ai.tokenize(self.fmt_log())) > 4000:
@@ -78,6 +78,7 @@ class Agent():
         prompt = self.fmt_log() + "\n<"
         r = await self.ai.completion(prompt, n_probs=5, n_predict=1)
         for prob in r[0]["completion_probabilities"][0]["probs"]:
+            print(prob)
             if self.name.startswith(prob["tok_str"]):
                 p = prob["prob"]
                 if p < 0.2: return self.chance(0.05)
@@ -88,7 +89,7 @@ class Agent():
 
     async def respond(self):
         print("responding...")
-        err = self.typing(self.cur_guild, self.cur_channel)
+        err = self.discord.typing(self.cur_guild, self.cur_channel)
         async def x():
             prompt = self.fmt_log() + f"\n<{self.name} " 
             d = await self.ai.completion(prompt, stop=[" ("])
@@ -98,7 +99,7 @@ class Agent():
             if time: await self.wait_until(time)
             g = " (" + self.cur_guild + ")" if self.cur_guild else ""
             c = " (" + self.cur_channel + ")" if self.cur_channel else ""
-            prompt = self.fmt_log() + f"\n<{self.name} {self.fmt_time(datetime.now())}{g}{c}"
+            prompt = self.fmt_log() + f"\n<{self.name} {self.fmt_time(datetime.now(pytz.utc))}{g}{c}"
             d = await self.ai.completion(prompt, stop=["\n<", "\n\t<Attachment"])
             r = "".join([x["content"] for x in d])
             p = self.parse_msg(r)
@@ -112,32 +113,81 @@ class Agent():
 
     async def wait_until(self, time):
         try:
-            date = datetime.strptime(time, "%H:%M:%S")
-            diff = datetime.now() - date
+            date = datetime.strptime(time, "%H:%M:%S").replace(tzinfo=pytz.utc)
+            diff = datetime.now(pytz.utc) - date
             await asyncio.wait_for(self.event.wait(), diff.total_seconds())
         except:
             pass
 
     async def run(self, p):
         if p["content"][0] == "/":
-            await self.add_msg(self.name, datetime.now(), p["content"], self.cur_guild, self.cur_channel)
-            await self.run_cmd(p["content"][1:].split())
-            if await self.should_respond(): await self.respond()
+            await self.add_msg(self.name, datetime.now(pytz.utc), p["content"], self.cur_guild, self.cur_channel)
+            x = p["content"][1:].split(" ", 1)
+            await self.run_cmd(x[0], x[1])
+            await self.respond()
+            #if await self.should_respond(): await self.respond()
         else:
             try:
                 ref = self.ids[p["reference"]]
             except KeyError:
                 ref = None
-            err = self.send(self.cur_guild, self.cur_channel, ref, p["content"])
+            err = self.discord.send(self.cur_guild, self.cur_channel, ref, p["content"])
             if isinstance(err, str):
-                await self.add_msg(self.name, datetime.now(), p["content"], self.cur_guild, self.cur_channel)
-                await self.add_msg("Discord", datetime.now(), err)
+                await self.add_msg(self.name, datetime.now(pytz.utc), p["content"], self.cur_guild, self.cur_channel)
+                await self.add_msg("Discord", datetime.now(pytz.utc), err)
                 await self.respond()
             else:
                 await err
 
-    async def run_cmd(self, cmd):
-        print(cmd, self.fmt_log())
+    async def add_history(self):
+        for x in await self.discord.channel_history(self.cur_guild, self.cur_channel):
+            await self.add_msg(**x)
+
+    async def run_cmd(self, cmd, rest):
+        match cmd:
+            case "switch-guild": 
+                if self.discord.guild_exists(rest):
+                    self.cur_guild = rest
+                    await self.add_msg("Discord", datetime.now(pytz.utc), f"Successfully switched you to guild {rest}")
+                    await self.add_history()
+                else:
+                    await self.add_msg("Discord", datetime.now(pytz.utc), f"Guild {rest or 'None'} does not exist. use /list-guilds to see what guilds you are in.")
+            case "switch-channel":
+                if self.discord.channel_exists(self.cur_guild, rest):
+                    self.cur_channel = rest
+                    await self.add_msg("Discord", datetime.now(pytz.utc), f"Successfully switched you to Channel {rest}")
+                    await self.add_history()
+                else:
+                    await self.add_msg("Discord", datetime.now(pytz.utc), f"Channel {rest or 'None'} does not exist in current guild {self.cur_guild or 'None'}. use /list-channels to see what channels are in the current guild.")
+            case "switch-dm":
+                if self.discord.dm_exists(rest):
+                    self.cur_guild = "Direct Messages"
+                    self.cur_channel = rest
+                    await self.add_msg("Discord", datetime.now(pytz.utc), f"Successfully switched you to Direct Message {rest}")
+                    await self.add_history()
+                else:
+                    await self.add_msg("Discord", datetime.now(pytz.utc), f"Direct message {rest or 'None'} does not exist. use /list-dms to see all your Direct Messages.")
+            case "switch-group":
+                if self.discord.group_exists(rest):
+                    self.cur_guild = "Group Messages"
+                    self.cur_channel = rest
+                    await self.add_msg("Discord", datetime.now(pytz.utc), f"Successfully switched you to Group Message {rest}")
+                    await self.add_history()
+                else:
+                    await self.add_msg("Discord", datetime.now(pytz.utc), f"Group message {rest or 'None'} does not exist. use /list-groups to see all your Group Messages.")
+            case "list-guilds":
+                await self.add_msg("Discord", datetime.now(pytz.utc), "List of guilds: " + "\n\t".join([f"{x['name']}{' @' + str(x['mentions']) if x['mentions'] > 0 else ''}{' (unread!)' if x['unread'] else ''}" for x in self.discord.get_guilds()]))
+            case "list-channels":
+                try:
+                    await self.add_msg("Discord", datetime.now(pytz.utc), f"List of Channels in {self.cur_guild}: " + "\n\t".join([f"{x['name']}{' @' + str(x['mentions']) if x['mentions'] > 0 else ''}{' (unread!)' if x['unread'] else ''}" for x in self.discord.get_channels(self.cur_guild)]))
+                except Exception as e:
+                    await self.add_msg("Discord", datetime.now(pytz.utc), str(e))
+            case "list-dms":
+                await self.add_msg("Discord", datetime.now(pytz.utc), "List of DMs: " + "\n\t".join([f"{x['name']}{' @' + str(x['mentions']) if x['mentions'] > 0 else ''}{' (unread!)' if x['unread'] else ''}" for x in self.discord.get_dms()]))
+            case "list-groups":
+                await self.add_msg("Discord", datetime.now(pytz.utc), "List of Groups: " + "\n\t".join([f"{x['name']}{' @' + str(x['mentions']) if x['mentions'] > 0 else ''}{' (unread!)' if x['unread'] else ''}" for x in self.discord.get_groups()]))
+            case "list-friends":
+                await self.add_msg("Discord", datetime.now(pytz.utc), "List of friends: " + "\n\t".join([f"{x['name']} (x['status'])" for x in self.discord.get_friends()]))
 
     def parse_msg(self, gen):
         r = re.search(r" *(\d+:\d+:\d+)?( \(.*\))?( \[.*\])?( \d+)?( @\d+)? > (.*)", gen)
