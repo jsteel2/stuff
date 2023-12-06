@@ -127,7 +127,7 @@ for o in obj:
         old_guild = cur_guild
         if new_guild and new_guild != cur_guild:
             if new_guild != "Direct messages" and new_guild != "Group messages":
-                if new_guild not in "\n".join(["".join(x) for x in buf]):
+                if new_guild not in "\n".join(["".join(x) for x in buf]) or (new_channel and new_channel != cur_channel and new_channel_d["data"]["channel"]["unread"] and new_channel_d["data"]["channel"]["mentions"] == 0):
                     user_msg(user, new_guild_d["timestamp"], "/list-guilds", cur_guild, cur_channel)
                     system_msg(new_guild_d["timestamp"], "List of guilds: " + "\n\t".join([f"{x['name']}{' @' + str(x['mentions']) if x['mentions'] > 0 else ''}{' (unread!)' if x['unread'] else ''}" for x in new_guild_d["data"]["guilds"]]))
                 user_msg(user, new_guild_d["timestamp"], "/switch-guild " + new_guild, cur_guild, cur_channel)
@@ -136,8 +136,6 @@ for o in obj:
             cur_channel = ""
 
         if new_channel and new_channel != cur_channel:
-            # REaD READ RAD, maybe also list channels/dms/guilds if they have UNREADS but no MENTIONS
-            # also get rid of all  cockmongler edits holy fuc
             if cur_guild == "Direct messages":
                 if new_channel not in "\n".join(["".join(x) for x in buf]):
                     dms = [x for x in new_channel_d["data"]["dms"] if x["type"] == "dm"]
@@ -153,7 +151,7 @@ for o in obj:
                 user_msg(user, new_channel_d["timestamp"], "/switch-group " + new_channel, cur_guild, cur_channel)
                 system_msg(new_channel_d["timestamp"], "Successfully switched you to Group " + new_channel)
             else:
-                if new_channel not in "\n".join(["".join(x) for x in buf]):
+                if new_channel not in "\n".join(["".join(x) for x in buf]) or (new_channel_d["data"]["channel"]["unread"] and new_channel_d["data"]["channel"]["mentions"] == 0):
                     user_msg(user, new_channel_d["timestamp"], "/list-channels", cur_guild, cur_channel)
                     system_msg(new_channel_d["timestamp"], f"List of Channels in {cur_guild}: " + "\n\t".join([f"{x['name']}{' @' + str(x['mentions']) if x['mentions'] > 0 else ''}{' (unread!)' if x['unread'] else ''}" for x in new_channel_d["data"]["channels"]]))
                 user_msg(user, new_channel_d["timestamp"], "/switch-channel " + new_channel, cur_guild, cur_channel)
