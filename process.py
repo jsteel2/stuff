@@ -127,7 +127,9 @@ for o in obj:
         old_guild = cur_guild
         if new_guild and new_guild != cur_guild:
             if new_guild != "Direct messages" and new_guild != "Group messages":
-                if new_guild not in "\n".join(["".join(x) for x in buf]) or (new_channel and new_channel != cur_channel and new_channel_d["data"]["channel"]["unread"] and new_channel_d["data"]["channel"]["mentions"] == 0):
+                aja = None
+                if new_channel_d and "data" in new_channel_d and "channels" in new_channel_d["data"]: aja = [i for i, x in enumerate(new_channel_d["data"]["channels"]) if x["name"] == new_channel_d["data"]["channel"]]
+                if new_guild not in "\n".join(["".join(x) for x in buf]) or (new_channel and new_channel != cur_channel and aja and new_channel_d["data"]["channels"][aja[0]]["unread"] and new_channel_d["data"]["channels"][aja[0]]["mentions"] == 0):
                     user_msg(user, new_guild_d["timestamp"], "/list-guilds", cur_guild, cur_channel)
                     system_msg(new_guild_d["timestamp"], "List of guilds: " + "\n\t".join([f"{x['name']}{' @' + str(x['mentions']) if x['mentions'] > 0 else ''}{' (unread!)' if x['unread'] else ''}" for x in new_guild_d["data"]["guilds"]]))
                 user_msg(user, new_guild_d["timestamp"], "/switch-guild " + new_guild, cur_guild, cur_channel)
@@ -151,7 +153,9 @@ for o in obj:
                 user_msg(user, new_channel_d["timestamp"], "/switch-group " + new_channel, cur_guild, cur_channel)
                 system_msg(new_channel_d["timestamp"], "Successfully switched you to Group " + new_channel)
             else:
-                if new_channel not in "\n".join(["".join(x) for x in buf]) or (new_channel_d["data"]["channel"]["unread"] and new_channel_d["data"]["channel"]["mentions"] == 0):
+                aja = None
+                if new_channel_d and "data" in new_channel_d and "channels" in new_channel_d["data"]: aja = [i for i, x in enumerate(new_channel_d["data"]["channels"]) if x["name"] == new_channel_d["data"]["channel"]]
+                if new_channel not in "\n".join(["".join(x) for x in buf]) or (aja and new_channel_d["data"]["channels"][aja[0]]["unread"] and new_channel_d["data"]["channels"][aja[0]]["mentions"] == 0):
                     user_msg(user, new_channel_d["timestamp"], "/list-channels", cur_guild, cur_channel)
                     system_msg(new_channel_d["timestamp"], f"List of Channels in {cur_guild}: " + "\n\t".join([f"{x['name']}{' @' + str(x['mentions']) if x['mentions'] > 0 else ''}{' (unread!)' if x['unread'] else ''}" for x in new_channel_d["data"]["channels"]]))
                 user_msg(user, new_channel_d["timestamp"], "/switch-channel " + new_channel, cur_guild, cur_channel)
