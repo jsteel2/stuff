@@ -102,6 +102,7 @@ class Client(selfcord.Client):
 
         if message.content == "!wipe":
             self.agent.log=[]
+            self.agent.id_count=0
             return
 
         if message.guild and not message.channel.permissions_for(message.guild.get_member(self.user.id)).send_messages and message.content != "!cmere": return
