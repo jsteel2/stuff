@@ -161,7 +161,11 @@ class Agent():
                     self.cur_guild = rest
                     self.cur_channel = None
                     await self.add_msg("Discord", datetime.now(pytz.utc), f"Successfully switched you to guild {rest}")
-                    await self.add_history()
+                    await self.add_msg(self.name, datetime.now(pytz.utc), "/list-channels")
+                    try:
+                        await self.add_msg("Discord", datetime.now(pytz.utc), f"List of Channels in {self.cur_guild}: " + "\n\t".join([f"{x['name']}{' @' + str(x['mentions']) if x['mentions'] > 0 else ''}{' (unread!)' if x['unread'] else ''}" for x in self.discord.get_channels(self.cur_guild)]))
+                    except Exception as e:
+                        await self.add_msg("Discord", datetime.now(pytz.utc), str(e))
                 else:
                     await self.add_msg("Discord", datetime.now(pytz.utc), f"Guild {rest or 'None'} does not exist. use /list-guilds to see what guilds you are in.")
             case "switch-channel":
