@@ -159,6 +159,7 @@ class Agent():
             case "switch-guild": 
                 if self.discord.guild_exists(rest):
                     self.cur_guild = rest
+                    self.cur_channel = None
                     await self.add_msg("Discord", datetime.now(pytz.utc), f"Successfully switched you to guild {rest}")
                     await self.add_history()
                 else:
