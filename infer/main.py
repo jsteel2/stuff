@@ -100,6 +100,10 @@ class Client(selfcord.Client):
     async def on_message(self, message: selfcord.Message):
         #if message.author == self.user: return
 
+        if message.content == "!wipe":
+            self.agent.log=[]
+            return
+
         if message.guild and not message.channel.permissions_for(message.guild.get_member(self.user.id)).send_messages: return
         if message.guild: guild = message.guild.name
         elif isinstance(message.channel, selfcord.GroupChannel): guild = "Group messages"
