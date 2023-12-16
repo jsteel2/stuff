@@ -47,7 +47,7 @@ class Agent():
         diffg = "!" if guild != self.cur_guild else ""
         diffc = "!" if channel != self.cur_channel else ""
         g = " (" + diffg + guild + ")" if guild else ""
-        c = " (" + diffc + channel + ")" if channel else ""
+        c = " [" + diffc + channel + "]" if channel else ""
         if id: self.convert_id(id)
         a = "\n\t" + "\n\t".join([f"<Attachment {x}>" for x in attachments]) if attachments else ""
         self.log.append([f"<{author} {self.fmt_time(time)}{g}{c}", id, reference, f" > {content}{a}"])
@@ -63,6 +63,7 @@ class Agent():
 
     async def periodic(self):
         while True:
+            self.sneed=True
             self.event.set()
             await asyncio.sleep(random.randrange(900, 2700))
 
@@ -70,13 +71,15 @@ class Agent():
         while True:
             await event.wait()
             event.clear()
-            if await self.should_respond(): await self.respond()
+            if self.sneed or await self.should_respond(): await self.respond()
+            self.sneed = False
 
     async def should_respond(self):
         # this would be brokey if someone else's username starts with the same token as the bot
         # also i think we wanna increase these chances, maybe especially if we're in a dm or got mentioned
         prompt = self.fmt_log() + "\n<"
         r = await self.ai.completion(prompt, n_probs=5, n_predict=1)
+        print("PROB:",prompt)
         for prob in r[0]["completion_probabilities"][0]["probs"]:
             print(prob)
             if self.name.startswith(prob["tok_str"]):
@@ -98,11 +101,18 @@ class Agent():
             time = p["time"] if p and "time" in p else None
             if time: await self.wait_until(time)
             g = " (" + self.cur_guild + ")" if self.cur_guild else ""
-            c = " (" + self.cur_channel + ")" if self.cur_channel else ""
+            c = " [" + self.cur_channel + "]" if self.cur_channel else ""
             prompt = self.fmt_log() + f"\n<{self.name} {self.fmt_time(datetime.now(pytz.utc))}{g}{c}"
+            if not self.cur_channel or not self.cur_guild: prompt = prompt + " >"
+            print("DIE", prompt)
             d = await self.ai.completion(prompt, stop=["\n<", "\n\t<Attachment"])
-            r = "".join([x["content"] for x in d])
+            r = "".join([x["content"] for x in d]).strip()
             p = self.parse_msg(r)
+            if not p: p = {"content": r}
+            if self.cur_guild: p["guild"] = self.cur_guild
+            if self.cur_channel: p["channel"] = self.cur_channel
+            if p["content"][:2] == "> ": p["content"] = p["content"][2:].strip()
+            print("SIR", p["content"])
             return p
         if isinstance(err, str):
             p = await x()
@@ -120,10 +130,11 @@ class Agent():
             pass
 
     async def run(self, p):
+        if "content" not in p: return
         if p["content"][0] == "/":
             await self.add_msg(self.name, datetime.now(pytz.utc), p["content"], self.cur_guild, self.cur_channel)
             x = p["content"][1:].split(" ", 1)
-            await self.run_cmd(x[0], x[1])
+            await self.run_cmd(x[0], x[1] if len(x) > 1 else None)
             await self.respond()
             #if await self.should_respond(): await self.respond()
         else:
@@ -161,7 +172,7 @@ class Agent():
                     await self.add_msg("Discord", datetime.now(pytz.utc), f"Channel {rest or 'None'} does not exist in current guild {self.cur_guild or 'None'}. use /list-channels to see what channels are in the current guild.")
             case "switch-dm":
                 if self.discord.dm_exists(rest):
-                    self.cur_guild = "Direct Messages"
+                    self.cur_guild = "Direct messages"
                     self.cur_channel = rest
                     await self.add_msg("Discord", datetime.now(pytz.utc), f"Successfully switched you to Direct Message {rest}")
                     await self.add_history()
@@ -169,7 +180,7 @@ class Agent():
                     await self.add_msg("Discord", datetime.now(pytz.utc), f"Direct message {rest or 'None'} does not exist. use /list-dms to see all your Direct Messages.")
             case "switch-group":
                 if self.discord.group_exists(rest):
-                    self.cur_guild = "Group Messages"
+                    self.cur_guild = "Group messages"
                     self.cur_channel = rest
                     await self.add_msg("Discord", datetime.now(pytz.utc), f"Successfully switched you to Group Message {rest}")
                     await self.add_history()

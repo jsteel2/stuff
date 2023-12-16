@@ -25,11 +25,11 @@ class Client(selfcord.Client):
 
     async def channel_history(self, guild, channel):
         try:
-            channel = self.channel_from(guild, channel)
+            nchannel = self.channel_from(guild, channel)
             r = []
-            async for x in channel.history(limit=20, oldest_first=True):
+            async for x in nchannel.history(limit=20):
                 r.append({"author": x.author, "time": x.created_at, "content": x.content, "guild": guild, "channel": channel, "id": x.id, "reference": x.reference.message_id if x.reference else None, "attachments": [x.filename for x in x.attachments]})
-            return r
+            return r[::-1]
         except Exception as e:
             return [{"author": "Discord", "time": datetime.now(pytz.utc), "content": str(e)}]
 
@@ -64,7 +64,7 @@ class Client(selfcord.Client):
             channel = [x for x in self.private_channels if isinstance(x, selfcord.DMChannel) and x.recipient.name == channel_name]
             if channel: return channel[0]
             else: raise Exception(f"Direct message {channel_name or 'None'} does not exist. use /list-dms to see all your Direct Messages.")
-        elif guild_name == "Group Messages":
+        elif guild_name == "Group messages":
             channel = [x for x in self.private_channels if isinstance(x, selfcord.GroupChannel) and ", ".join([x.name for x in x.recipients]) == channel_name]
             if channel: return channel[0]
             else: raise Exception(f"Group message {channel_name or 'None'} does not exist. use /list-groups to see all your Group Messages.")
@@ -95,20 +95,20 @@ class Client(selfcord.Client):
         return self.w("Direct messages", dm_name)
 
     def group_exists(self, group_name):
-        return self.w("Group Messages", group_name)
+        return self.w("Group messages", group_name)
 
     async def on_message(self, message: selfcord.Message):
         #if message.author == self.user: return
 
         if message.guild and not message.channel.permissions_for(message.guild.get_member(self.user.id)).send_messages: return
+        if message.guild: guild = message.guild.name
+        elif isinstance(message.channel, selfcord.GroupChannel): guild = "Group messages"
+        else: guild = "Direct messages"
+        if getattr(message.channel, "name", None): channel = message.channel.name
+        elif getattr(message.channel, "recipients", None): channel = ", ".join([x.name for x in message.channel.recipients])
+        else: channel = message.channel.recipient.name
 
-        if self.user in message.mentions or isinstance(message.channel, selfcord.DMChannel) or self.user == message.author:
-            if message.guild: guild = message.guild.name
-            elif isinstance(message.channel, selfcord.GroupChannel): guild = "Group messages"
-            else: guild = "Direct messages"
-            if getattr(message.channel, "name", None): channel = message.channel.name
-            elif getattr(message.channel, "recipients", None): channel = ", ".join([x.name for x in message.channel.recipients])
-            else: channel = message.channel.recipient.name
+        if self.user in message.mentions or isinstance(message.channel, selfcord.DMChannel) or self.user == message.author or (guild == self.agent.cur_guild and channel == self.agent.cur_channel):
             self.messages[message.id] = message
             await self.agent.add_msg(message.author.name, message.created_at, message.content, guild, channel, message.id, message.reference, [x.filename for x in message.attachments])
             await self.agent.signal()
