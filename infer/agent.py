@@ -142,7 +142,7 @@ class Agent():
                 ref = self.ids[p["reference"]]
             except KeyError:
                 ref = None
-            err = self.discord.send(self.cur_guild, self.cur_channel, ref, p["content"])
+            err = self.discord.send(self.cur_guild, self.cur_channel, ref, p["content"].replace("\n\t", "\n")
             if isinstance(err, str):
                 await self.add_msg(self.name, datetime.now(pytz.utc), p["content"], self.cur_guild, self.cur_channel)
                 await self.add_msg("Discord", datetime.now(pytz.utc), err)
