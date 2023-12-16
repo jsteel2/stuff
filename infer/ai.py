@@ -6,7 +6,7 @@ import atexit
 class AI():
     def __init__(self, model, port, remote=False):
         self.server = f"http://{model if remote else '127.0.0.1'}:{port}"
-        self.params = {"temp": 0.7, "mirostat": 1, "mirostat_ent": 4, "mirostat_lr": 0.2, "ignore_eos": True, "repeat_penalty": 1.35, "repeat_last_n": 1600}
+        self.params = {"temp": 0.98, "ignore_eos": True, "repeat_penalty": 1.18, "top_k": 100, "top_p": 0.37, "repeat_last_n": 1600}
         if remote: return
         p = Popen(["./server", "-c", "4096", "--mlock", "-ngl", "99", "-cb", "-m", model, "--host", "127.0.0.1", "--port", port], stdout=PIPE)
         atexit.register(lambda: p.kill())
@@ -24,6 +24,7 @@ class AI():
         async with self.sess.post(self.server + "/completion", json={"prompt": prompt, "cache_prompt": True, "stream": True, **kwargs, **self.params}) as resp:
             async for line in resp.content:
                 if line == b"\n": continue
+                print(line)
                 d = json.loads(str(line, "utf8").split("data: ")[1])
                 if "stopfn" in kwargs and kwargs["stopfn"](d): break
                 r.append(d)
