@@ -95,7 +95,7 @@ class Agent():
         err = self.discord.typing(self.cur_guild, self.cur_channel)
         async def x():
             prompt = self.fmt_log() + f"\n<{self.name} " 
-            d = await self.ai.completion(prompt, stop=[" ("])
+            d = await self.ai.completion(prompt, stop=[" (", " >"])
             r = "".join([x["content"] for x in d])
             p = self.parse_msg(r)
             time = p["time"] if p and "time" in p else None
