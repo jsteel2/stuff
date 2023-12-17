@@ -1,3 +1,4 @@
+import asyncio
 from subprocess import Popen, PIPE
 import aiohttp
 import json
@@ -22,11 +23,16 @@ class AI():
     async def completion(self, prompt, **kwargs):
         r = []
         async with self.sess.post(self.server + "/completion", json={"prompt": prompt, "cache_prompt": True, "stream": True, **kwargs, **self.params}) as resp:
-            async for line in resp.content:
-                if line == b"\n": continue
-                print(line)
-                d = json.loads(str(line, "utf8").split("data: ")[1])
-                if "stopfn" in kwargs and kwargs["stopfn"](d): break
-                r.append(d)
-                if "n_predict" in kwargs and len(r) >= kwargs["n_predict"]: break
+            try:
+                async for line in resp.content:
+                    if line == b"\n": continue
+                    if line.startswith(b'error'):
+                        await asyncio.sleep(1)
+                        return await self.completion(prompt, **kwargs)
+                    print(line)
+                    d = json.loads(str(line, "utf8").split("data: ")[1])
+                    if "stopfn" in kwargs and kwargs["stopfn"](d): break
+                    r.append(d)
+                    if "n_predict" in kwargs and len(r) >= kwargs["n_predict"]: break
+            except: pass
         return r
