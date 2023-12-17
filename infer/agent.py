@@ -32,7 +32,7 @@ class Agent():
                 elif i == 2: return " @" + self.ids[x]
                 else: return x
             except KeyError: return ""
-        return "\n".join([self.sys_prompt.format(time=self.fmt_time(datetime.now(pytz.utc))), *["".join([fmt(x, i) for i, x in enumerate(c)]) for c in self.log]])
+        return "\n".join([self.sys_prompt.format(time="00:00:00"), *["".join([fmt(x, i) for i, x in enumerate(c)]) for c in self.log]])
 
     async def trim_log(self):
         while len(await self.ai.tokenize(self.fmt_log())) > 4000:
