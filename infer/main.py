@@ -113,6 +113,8 @@ class Client(selfcord.Client):
             self.agent.name = n
             return
 
+        if message.author.name == self.user.name: message.author.name = self.agent.name
+
         if message.guild and not message.channel.permissions_for(message.guild.get_member(self.user.id)).send_messages and message.content != "!cmere": return
         if message.guild: guild = message.guild.name
         elif isinstance(message.channel, selfcord.GroupChannel): guild = "Group messages"
