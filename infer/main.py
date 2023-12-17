@@ -105,6 +105,14 @@ class Client(selfcord.Client):
             self.agent.id_count=0
             return
 
+        if message.content.startswith("!sus"):
+            l = message.content.split()
+            if len(l) > 1: n = " ".join(l[1:])
+            else: n = self.user.name
+            self.agent.sys_prompt.replace(self.agent.name, n)
+            self.agent.name = n
+            return
+
         if message.guild and not message.channel.permissions_for(message.guild.get_member(self.user.id)).send_messages and message.content != "!cmere": return
         if message.guild: guild = message.guild.name
         elif isinstance(message.channel, selfcord.GroupChannel): guild = "Group messages"
