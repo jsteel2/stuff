@@ -109,7 +109,7 @@ class Client(selfcord.Client):
             l = message.content.split()
             if len(l) > 1: n = " ".join(l[1:])
             else: n = self.user.name
-            self.agent.sys_prompt.replace(self.agent.name, n)
+            self.agent.sys_prompt = self.agent.sys_prompt.replace(self.agent.name, n)
             self.agent.name = n
             return
 
