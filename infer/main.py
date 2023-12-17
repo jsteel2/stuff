@@ -113,7 +113,8 @@ class Client(selfcord.Client):
             self.agent.name = n
             return
 
-        if message.author.name == self.user.name: message.author.name = self.agent.name
+        if message.author.name == self.user.name: messageauthorname = self.agent.name
+        else: messageauthorname = message.author.name
 
         if message.guild and not message.channel.permissions_for(message.guild.get_member(self.user.id)).send_messages and message.content != "!cmere": return
         if message.guild: guild = message.guild.name
@@ -130,7 +131,7 @@ class Client(selfcord.Client):
 
         if self.user in message.mentions or isinstance(message.channel, selfcord.DMChannel) or self.user == message.author or (guild == self.agent.cur_guild and channel == self.agent.cur_channel):
             self.messages[message.id] = message
-            await self.agent.add_msg(message.author.name, message.created_at, message.content.replace("\n", "\n\t"), guild, channel, message.id, message.reference, [x.filename for x in message.attachments])
+            await self.agent.add_msg(messageauthorname, message.created_at, message.content.replace("\n", "\n\t"), guild, channel, message.id, message.reference, [x.filename for x in message.attachments])
             await self.agent.signal()
 
 if __name__ == "__main__":
