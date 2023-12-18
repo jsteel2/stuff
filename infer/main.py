@@ -138,7 +138,7 @@ class Client(selfcord.Client):
 
         if self.user in message.mentions or isinstance(message.channel, selfcord.DMChannel) or self.user == message.author or (guild == self.agent.cur_guild and channel == self.agent.cur_channel):
             self.messages[message.id] = message
-            await self.agent.add_msg(messageauthorname, message.created_at, message.content.replace("\n", "\n\t"), guild, channel, message.id, message.reference, [x.filename for x in message.attachments])
+            await self.agent.add_msg(messageauthorname, message.created_at, message.content.replace("\n", "\n\t"), guild, channel, message.id, getattr(message.reference, "message_id", None), [x.filename for x in message.attachments])
             await self.agent.signal()
 
 if __name__ == "__main__":

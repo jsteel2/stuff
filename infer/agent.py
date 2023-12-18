@@ -35,7 +35,6 @@ class Agent():
                 elif i == 2: return " @" + self.ids[x]
                 else: return x
             except KeyError:
-                if i == 2 and x in self.ids2: return " @" + x
                 return ""
         return "\n".join([self.sys_prompt.format(time="00:00:00"), *["".join([fmt(x, i) for i, x in enumerate(c)]) for c in self.log]])
 
