@@ -65,7 +65,7 @@ class Client(selfcord.Client):
             if channel: return channel[0]
             else: raise Exception(f"Direct message {channel_name or 'None'} does not exist. use /list-dms to see all your Direct Messages.")
         elif guild_name == "Group messages":
-            channel = [x for x in self.private_channels if isinstance(x, selfcord.GroupChannel) and ", ".join([x.name for x in x.recipients]) == channel_name]
+            channel = [x for x in self.private_channels if isinstance(x, selfcord.GroupChannel) and (", ".join([x.name for x in x.recipients]) == channel_name or getattr(x, "name", None) == channel_name)]
             if channel: return channel[0]
             else: raise Exception(f"Group message {channel_name or 'None'} does not exist. use /list-groups to see all your Group Messages.")
         guild = [x for x in self.guilds if x.name == guild_name]
@@ -103,6 +103,10 @@ class Client(selfcord.Client):
         if message.content == "!wipe":
             self.agent.log=[]
             self.agent.id_count=0
+            return
+
+        if message.content == "!chill":
+            self.agent.chill = not self.agent.chill
             return
 
         if message.content.startswith("!sus"):

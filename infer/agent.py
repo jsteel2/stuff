@@ -15,6 +15,7 @@ class Agent():
         self.ids = {}
         self.id_count = 0
         self.event = asyncio.Event()
+        self.chill = False
         self.sys_prompt = "Welcome to Discord, it is {time}, following commands are available:\n/login <username>\n/switch-guild <guild>\n/switch-channel <channel>\n/switch-dm <user>\n/switch-group <group>\n/list-guilds\n/list-channels\n/list-dms\n/list-groups\n/list-friends\nAny other commands will not work, Have fun!\n<" + name + " 00:00:00 > /login " + name + "\n<Discord 00:00:00 > Successfully logged you in to Discord as User " + name
 
     def convert_id(self, id):
@@ -75,6 +76,7 @@ class Agent():
             self.sneed = False
 
     async def should_respond(self):
+        if self.chill: return False
         # this would be brokey if someone else's username starts with the same token as the bot
         # also i think we wanna increase these chances, maybe especially if we're in a dm or got mentioned
         prompt = self.fmt_log() + "\n<"
@@ -168,6 +170,8 @@ class Agent():
                         await self.add_msg("Discord", datetime.now(pytz.utc), str(e))
                 else:
                     await self.add_msg("Discord", datetime.now(pytz.utc), f"Guild {rest or 'None'} does not exist. use /list-guilds to see what guilds you are in.")
+                    await self.add_msg(self.name, datetime.now(pytz.utc), "/list-guilds")
+                    await self.add_msg("Discord", datetime.now(pytz.utc), "List of guilds: " + "\n\t".join([f"{x['name']}{' @' + str(x['mentions']) if x['mentions'] > 0 else ''}{' (unread!)' if x['unread'] else ''}" for x in self.discord.get_guilds()]))
             case "switch-channel":
                 if self.discord.channel_exists(self.cur_guild, rest):
                     self.cur_channel = rest
@@ -175,6 +179,11 @@ class Agent():
                     await self.add_history()
                 else:
                     await self.add_msg("Discord", datetime.now(pytz.utc), f"Channel {rest or 'None'} does not exist in current guild {self.cur_guild or 'None'}. use /list-channels to see what channels are in the current guild.")
+                    await self.add_msg(self.name, datetime.now(pytz.utc), "/list-channels")
+                    try:
+                        await self.add_msg("Discord", datetime.now(pytz.utc), f"List of Channels in {self.cur_guild}: " + "\n\t".join([f"{x['name']}{' @' + str(x['mentions']) if x['mentions'] > 0 else ''}{' (unread!)' if x['unread'] else ''}" for x in self.discord.get_channels(self.cur_guild)]))
+                    except Exception as e:
+                        await self.add_msg("Discord", datetime.now(pytz.utc), str(e))
             case "switch-dm":
                 if self.discord.dm_exists(rest):
                     self.cur_guild = "Direct messages"
@@ -183,6 +192,8 @@ class Agent():
                     await self.add_history()
                 else:
                     await self.add_msg("Discord", datetime.now(pytz.utc), f"Direct message {rest or 'None'} does not exist. use /list-dms to see all your Direct Messages.")
+                    await self.add_msg(self.name, datetime.now(pytz.utc), "/list-dms")
+                    await self.add_msg("Discord", datetime.now(pytz.utc), "List of DMs: " + "\n\t".join([f"{x['name']}{' @' + str(x['mentions']) if x['mentions'] > 0 else ''}{' (unread!)' if x['unread'] else ''}" for x in self.discord.get_dms()]))
             case "switch-group":
                 if self.discord.group_exists(rest):
                     self.cur_guild = "Group messages"
@@ -191,6 +202,8 @@ class Agent():
                     await self.add_history()
                 else:
                     await self.add_msg("Discord", datetime.now(pytz.utc), f"Group message {rest or 'None'} does not exist. use /list-groups to see all your Group Messages.")
+                    await self.add_msg(self.name, datetime.now(pytz.utc), "/list-groups")
+                    await self.add_msg("Discord", datetime.now(pytz.utc), "List of Groups: " + "\n\t".join([f"{x['name']}{' @' + str(x['mentions']) if x['mentions'] > 0 else ''}{' (unread!)' if x['unread'] else ''}" for x in self.discord.get_groups()]))
             case "list-guilds":
                 await self.add_msg("Discord", datetime.now(pytz.utc), "List of guilds: " + "\n\t".join([f"{x['name']}{' @' + str(x['mentions']) if x['mentions'] > 0 else ''}{' (unread!)' if x['unread'] else ''}" for x in self.discord.get_guilds()]))
             case "list-channels":
