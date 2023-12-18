@@ -57,7 +57,7 @@ class Client(selfcord.Client):
         try:
             ref = self.messages.get(reference, None)
             chan = self.channel_from(guild, channel)
-            if ref.channel != chan: ref = None
+            if ref and ref.channel != chan: ref = None
             return chan.send(content, reference=ref)
         except Exception as e:
             return str(e)
