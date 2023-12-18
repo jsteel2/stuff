@@ -18,6 +18,7 @@ class Agent():
         self.event = asyncio.Event()
         self.chill = False
         self.sys_prompt = "Welcome to Discord, it is {time}, following commands are available:\n/login <username>\n/switch-guild <guild>\n/switch-channel <channel>\n/switch-dm <user>\n/switch-group <group>\n/list-guilds\n/list-channels\n/list-dms\n/list-groups\n/list-friends\nAny other commands will not work, Have fun!\n<" + name + " 00:00:00 > /login " + name + "\n<Discord 00:00:00 > Successfully logged you in to Discord as User " + name
+        self.pre = ""
 
     def convert_id(self, id):
         self.ids[id] = str(self.id_count)
@@ -36,7 +37,7 @@ class Agent():
                 else: return x
             except KeyError:
                 return ""
-        return "\n".join([self.sys_prompt.format(time="00:00:00"), *["".join([fmt(x, i) for i, x in enumerate(c)]) for c in self.log]])
+        return "\n".join([self.sys_prompt.format(time="00:00:00"), self.pre, *["".join([fmt(x, i) for i, x in enumerate(c)]) for c in self.log]])
 
     async def trim_log(self):
         while len(await self.ai.tokenize(self.fmt_log())) > 4000:

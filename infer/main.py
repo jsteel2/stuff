@@ -112,6 +112,12 @@ class Client(selfcord.Client):
             self.agent.chill = not self.agent.chill
             return
 
+        if message.content.startwith("!pre"):
+            l = message.content.split("\n", 1)
+            if len(l) <= 1: self.agent.pre = ""
+            else: self.agent.pre = l[1].strip()
+            return
+
         if message.content.startswith("!sus"):
             l = message.content.split()
             if len(l) > 1: n = " ".join(l[1:])
