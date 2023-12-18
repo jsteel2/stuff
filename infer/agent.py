@@ -153,7 +153,8 @@ class Agent():
                 await self.add_msg("Discord", datetime.now(pytz.utc), err)
                 await self.respond()
             else:
-                await err
+                try: await err
+                except: pass
 
     async def add_history(self):
         for x in await self.discord.channel_history(self.cur_guild, self.cur_channel):
