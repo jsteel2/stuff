@@ -7,7 +7,7 @@ import atexit
 class AI():
     def __init__(self, model, port, remote=False):
         self.server = f"http://{model if remote else '127.0.0.1'}:{port}"
-        self.params = {"temp": 0.98, "ignore_eos": True, "repeat_penalty": 1.25, "top_k": 100, "top_p": 0.37, "repeat_last_n": 1600, "n_ctx": 4096}
+        self.params = {"temp": 0.98, "ignore_eos": True, "repeat_penalty": 1.25, "top_k": 100, "top_p": 0.37, "repeat_last_n": 1600, "n_ctx": 4096, "n_predict": 512}
         if remote: return
         p = Popen(["./server", "-c", "4096", "--mlock", "-ngl", "99", "-cb", "-m", model, "--host", "127.0.0.1", "--port", port], stdout=PIPE)
         atexit.register(lambda: p.kill())
