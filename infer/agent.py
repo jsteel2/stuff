@@ -13,6 +13,7 @@ class Agent():
         self.cur_guild = ""
         self.cur_channel = ""
         self.ids = {}
+        self.ids2 = {}
         self.id_count = 0
         self.event = asyncio.Event()
         self.chill = False
@@ -20,6 +21,7 @@ class Agent():
 
     def convert_id(self, id):
         self.ids[id] = str(self.id_count)
+        self.ids2[self.id_count] = id
         self.id_count += 1
         return id
 
@@ -32,7 +34,9 @@ class Agent():
                 if i == 1: return " " + self.ids[x]
                 elif i == 2: return " @" + self.ids[x]
                 else: return x
-            except KeyError: return ""
+            except KeyError:
+                if i == 2 and x in self.ids2: return " @" + x
+                return ""
         return "\n".join([self.sys_prompt.format(time="00:00:00"), *["".join([fmt(x, i) for i, x in enumerate(c)]) for c in self.log]])
 
     async def trim_log(self):
@@ -141,7 +145,7 @@ class Agent():
             #if await self.should_respond(): await self.respond()
         else:
             try:
-                ref = self.ids[p["reference"]]
+                ref = self.ids2[p["reference"]]
             except KeyError:
                 ref = None
             err = self.discord.send(self.cur_guild, self.cur_channel, ref, p["content"].replace("\n\t", "\n"))
