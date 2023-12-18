@@ -162,6 +162,7 @@ class Agent():
             await self.add_msg(**x)
 
     async def run_cmd(self, cmd, rest):
+        if rest: rest = rest.split("@", 1)[0].strip()
         match cmd:
             case "switch-guild": 
                 if self.discord.guild_exists(rest):
