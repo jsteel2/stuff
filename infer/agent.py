@@ -40,7 +40,7 @@ class Agent():
         return "\n".join([self.sys_prompt.format(time="00:00:00"), self.pre, *["".join([fmt(x, i) for i, x in enumerate(c)]) for c in self.log]])
 
     async def trim_log(self):
-        while len(await self.ai.tokenize(self.fmt_log())) > 4000:
+        while len(await self.ai.tokenize(self.fmt_log())) > 3450:
             self.log = self.log[1:]
             self.id_count -= 1
             for k in self.ids.keys(): self.ids[k] -= 1
