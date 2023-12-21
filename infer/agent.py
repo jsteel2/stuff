@@ -3,6 +3,7 @@ import pytz
 import asyncio
 import random
 import re
+import requests
 
 class Agent():
     def __init__(self, ai, name, wrap):
@@ -148,7 +149,7 @@ class Agent():
                 ref = self.ids2[p["reference"]]
             except KeyError:
                 ref = None
-            err = self.discord.send(self.cur_guild, self.cur_channel, ref, p["content"].replace("\n\t", "\n"))
+            err = self.discord.send(self.cur_guild, self.cur_channel, ref, re.sub(r"https?://tenor\.com/[^ ]*", lambda x: random.choice(requests.get("https://tenor.googleapis.com/v2/search", {"q": " ".join(x.group().split("view/", 1)[1].split("-")[:-2]), "key": "AIzaSyC7nt3I4xDI3-LELCyAjvPJPU6VNRrUlck", "client_key": "bruh", "limit": 4}).json()["results"])["itemurl"], p["content"].replace("\n\t", "\n")))
             if isinstance(err, str):
                 await self.add_msg(self.name, datetime.now(pytz.utc), p["content"], self.cur_guild, self.cur_channel)
                 await self.add_msg("Discord", datetime.now(pytz.utc), err)
