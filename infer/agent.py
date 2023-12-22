@@ -18,6 +18,7 @@ class Agent():
         self.id_count = 0
         self.event = asyncio.Event()
         self.chill = False
+        self.jail = False
         self.sys_prompt = "Welcome to Discord, it is {time}, following commands are available:\n/login <username>\n/switch-guild <guild>\n/switch-channel <channel>\n/switch-dm <user>\n/switch-group <group>\n/list-guilds\n/list-channels\n/list-dms\n/list-groups\n/list-friends\nAny other commands will not work, Have fun!\n<" + name + " 00:00:00 > /login " + name + "\n<Discord 00:00:00 > Successfully logged you in to Discord as User " + name
         self.pre = ""
 
@@ -164,6 +165,9 @@ class Agent():
 
     async def run_cmd(self, cmd, rest):
         if rest: rest = rest.split("@", 1)[0].strip()
+        if self.jail:
+            await self.add_msg("Discord", datetime.now(pytz.utc), f"No commands allowed!")
+            return
         match cmd:
             case "switch-guild": 
                 if self.discord.guild_exists(rest):

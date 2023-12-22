@@ -112,6 +112,9 @@ class Client(selfcord.Client):
         if message.content == "!chill":
             self.agent.chill = not self.agent.chill
             return
+        if message.content == "!jail":
+            self.agent.jail = not self.agent.jail
+            return
 
         if message.content.startswith("!pre"):
             l = message.content.split("\n", 1)
