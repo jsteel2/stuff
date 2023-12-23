@@ -6,7 +6,7 @@ import pytz
 from datetime import datetime
 import os
 
-badwords = r"(nigg(a|er)s?)|(fag(got)?s?)|kys|kill|die|jews?|cunts?"
+badwords = r"(nigg(a|er)s?)|(fag(got)?s?)|kys|kill|die|jews?|cunts?|--userphone|--hangup"
 
 # FIXME: group dms can have names
 
