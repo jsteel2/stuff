@@ -62,7 +62,7 @@ class Client(selfcord.Client):
             ref = self.messages.get(reference, None)
             chan = self.channel_from(guild, channel)
             if ref and ref.channel != chan: ref = None
-            return chan.send(re.sub(badwords, "BADWORD", content, re.IGNORECASE) if self.family else content, reference=ref)
+            return chan.send(re.sub(badwords, "BADWORD", content, flags=re.IGNORECASE) if self.family else content, reference=ref)
         except Exception as e:
             return str(e)
 

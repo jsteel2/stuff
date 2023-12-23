@@ -230,7 +230,7 @@ class Agent():
                 await self.add_msg("Discord", datetime.now(pytz.utc), "List of friends: " + "\n\t".join([f"{x['name']} (x['status'])" for x in self.discord.get_friends()]))
 
     def parse_msg(self, gen):
-        r = re.search(r"( \d+:\d+:\d+)?( \(.*\))?( \[.*\])?( \d+)?( @\d+)? > ([\s\S]*)", gen, re.MULTILINE)
+        r = re.search(r"( \d+:\d+:\d+)?( \(.*\))?( \[.*\])?( \d+)?( @\d+)? > ([\s\S]*)", gen, flags=re.MULTILINE)
         if not r: return None
         d = {}
         for capture in r.groups():
