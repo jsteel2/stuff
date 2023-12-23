@@ -6,12 +6,15 @@ import pytz
 from datetime import datetime
 import os
 
+badwords = r"(nigg(a|er)s?)|(fag(got)?s?)|kys|kill|die|jews?|cunts?"
+
 # FIXME: group dms can have names
 
 class Client(selfcord.Client):
     async def on_ready(self):
         ai = AI("8.218.148.93", "7860", remote=True)
         self.messages = {}
+        self.family = False
         #ai = AI("cock-q6_k.gguf", "6969")
         await ai.init()
         self.agent = Agent(ai, self.user.name, self)
@@ -59,7 +62,7 @@ class Client(selfcord.Client):
             ref = self.messages.get(reference, None)
             chan = self.channel_from(guild, channel)
             if ref and ref.channel != chan: ref = None
-            return chan.send(content, reference=ref)
+            return chan.send(re.sub(badwords, "BADWORD", content) if self.family else content, reference=ref)
         except Exception as e:
             return str(e)
 
@@ -114,6 +117,9 @@ class Client(selfcord.Client):
             return
         if message.content == "!jail":
             self.agent.jail = not self.agent.jail
+            return
+        if message.content == "!family":
+            self.family = not self.family
             return
 
         if message.content.startswith("!pre"):
